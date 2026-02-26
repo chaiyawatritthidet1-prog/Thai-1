@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>เกมแฟนพันธุ์แท้จังหวัดไทย</title>
+    <link href="https://fonts.googleapis.com/css2?family=Mali:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Mali', cursive;
+            background: linear-gradient(135deg, #f6d365 0%, #fda085 100%); /* สีส้มพีช สดใสแบบไทยๆ */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            overflow: hidden;
+        }
+
+        .container {
+            background-color: rgba(255, 255, 255, 0.95);
+            padding: 2rem;
+            border-radius: 25px;
+            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.15);
+            text-align: center;
+            width: 500px; /* กว้างขึ้นหน่อยเพราะคำขวัญยาว */
+            max-width: 90%;
+            border: 4px solid #fff;
+            position: relative;
+        }
+
+        h1 { color: #d35400; margin-bottom: 10px; }
+        p { color: #555; }
+
+        /* Input Box */
+        input[type="text"] {
+            width: 100%;
+            padding: 12px;
+            font-size: 1.4rem;
+            font-family: 'Mali', cursive;
+            text-align: center;
+            border: 3px solid #ddd;
+            border-radius: 50px;
+            box-sizing: border-box;
+            margin-bottom: 20px;
+            background-color: #fcfcfc;
+            outline: none;
+            transition: 0.3s;
+        }
+        input:focus { border-color: #fda085; background: #fff; transform: scale(1.02); }
+
+        /* Button */
+        .btn {
+            background: linear-gradient(to right, #ff9966, #ff5e62);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            font-size: 1.2rem;
+            font-family: 'Mali', cursive;
+            font-weight: bold;
+            border-radius: 50px;
+            cursor: pointer;
+            width: 100%;
+            transition: transform 0.2s;
+            box-shadow: 0 5px 15px rgba(255, 94, 98, 0.4);
+        }
+        .btn:hover { transform: translateY(-3px); }
+
+        /* Screen Management */
+        .screen { display: none; }
+        .active { display: block; animation: fadeIn 0.5s; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* Game Stats */
+        .stats {
+            display: flex;
+            justify-content: space-between;
+            font-size: 1.2rem;
+            font-weight: bold;
+            margin-bottom: 15px;
+        }
+        .timer-box { color: #e74c3c; position: relative; }
+        .score-box { color: #27ae60; }
+
+        /* Question Box (Slogan) */
+        .question-box {
+            font-size: 1.3rem; /* ตัวหนังสือเล็กลงหน่อยเพราะคำขวัญยาว */
+            font-weight: 600;
+            margin: 20px 0;
+            color: #2c3e50;
+            min-height: 80px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            line-height: 1.6;
+            background: #fff8e1;
+            padding: 15px;
+            border-radius: 15px;
+            border: 2px dashed #f6d365;
+        }
+
+        /* Leaderboard */
+        .leaderboard-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+        .leaderboard-table th { background-color: #ff9966; color: white; padding: 8px; border-radius: 8px 8px 0 0; }
+        .leaderboard-table td { border-bottom: 1px solid #eee; padding: 8px; color: #555; }
+        .rank-1 { color: #f1c40f; font-weight: bold; }
+
+        /* Animations */
+        @keyframes floatUp { 
+            0% { opacity: 1; transform: translate(-50%, 0); } 
+            100% { opacity: 0; transform: translate(-50%, -60px); } 
+        }
+        .feedback-popup {
+            position: absolute; left: 50%; top: 40%; transform: translateX(-50%);
+            font-size: 1.5rem; font-weight: bold; color: #e67e22;
+            pointer-events: none; animation: floatUp 0.8s ease-out forwards; white-space: nowrap; z-index: 10;
+        }
+        .time-bonus {
+            position: absolute; top: -25px; right: 0; left: 0;
+            color: #27ae60; font-size: 1rem; font-weight: bold;
+            animation: floatUp 0.8s ease-out forwards;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <div id="start-screen" class="screen active">
+            <h1>ทายจังหวัดจากคำขวัญ 🇹🇭</h1>
+            <p>กติกา: พิมพ์ชื่อจังหวัดให้ถูกต้อง (ไม่ต้องใส่คำว่า "จังหวัด")</p>
+            <p style="font-size: 0.9rem; color: #e74c3c;">ตอบผิด = จบเกม!</p>
+            <input type="text" id="player-name" placeholder="ชื่อเล่นของคุณ..." maxlength="12">
+            <button class="btn" onclick="goToGame()">เริ่มประลองความรู้!</button>
+        </div>
+
+        <div id="game-screen" class="screen">
+            <div class="stats">
+                <span class="timer-box" id="timer-container">⏳ <span id="time-left">60</span>s</span>
+                <span class="score-box">⭐ <span id="score">0</span></span>
+            </div>
+            
+            <div class="question-box" id="question">
+                ...คำขวัญกำลังโหลด...
+            </div>
+            
+            <input type="text" id="answer-input" placeholder="จังหวัดอะไรเอ่ย?" autocomplete="off">
+            <p style="font-size: 0.8rem; color: #999;">(กด Enter เพื่อตอบ)</p>
+        </div>
+
+        <div id="end-screen" class="screen">
+            <h2 id="end-title">จบเกม!</h2>
+            <p>เฉลยข้อล่าสุด: <span id="correct-answer-show" style="color:#27ae60; font-weight:bold;">-</span></p>
+            <p>คะแนนของคุณ: <span id="final-score" style="font-size: 2rem; color: #d35400; font-weight: bold;">0</span></p>
+            
+            <div style="background: #fff; border-radius: 15px; padding: 10px; box-shadow: 0 5px 15px rgba(0,0,0,0.05);">
+                <h3>🏆 ทำเนียบเซียนจังหวัด</h3>
+                <table class="leaderboard-table">
+                    <thead><tr><th>#</th><th>ชื่อ</th><th>คะแนน</th></tr></thead>
+                    <tbody id="leaderboard-body"></tbody>
+                </table>
+            </div>
+
+            <button class="btn" onclick="restartGame()" style="margin-top: 20px;">เล่นใหม่อีกครั้ง 🔄</button>
+        </div>
+    </div>
+
+    <script>
+        // ฐานข้อมูลคำขวัญ (ตัวอย่าง 20 จังหวัดยอดฮิต)
+        const provincesData = [
+            { slogan: "กรุงเทพฯ ดุจเทพสร้าง เมืองศูนย์กลางการปกครอง วัดวังงามเรืองรอง เมืองหลวงของประเทศไทย", answer: "กรุงเทพมหานคร" },
+            { slogan: "ไข่มุกอันดามัน สวรรค์เมืองใต้ หาดทรายสีทอง สองวีรสตรี บารมีหลวงพ่อแช่ม", answer: "ภูเก็ต" },
+            { slogan: "ดอยสุเทพเป็นศรี ประเพณีเป็นสง่า บุปผชาติล้วนงามตา นามล้ำค่านครพิงค์", answer: "เชียงใหม่" },
+            { slogan: "ทะเลงาม ข้าวหลามอร่อย อ้อยหวาน จักสานดี ประเพณีวิ่งควาย", answer: "ชลบุรี" },
+            { slogan: "เมืองหญิงกล้า ผ้าไหมดี หมี่โคราช ปราสาทหิน ดินด่านเกวียน", answer: "นครราชสีมา" },
+            { slogan: "ราชธานีเก่า อู่ข้าวอู่น้ำ เลิศล้ำกานท์กวี คนดีศรีอยุธยา เลอค่ามรดกโลก", answer: "พระนครศรีอยุธยา" },
+            { slogan: "พระปฐมเจดีย์เสียดฟ้า สวยงามตาพระราชวังสนามจันทร์ งามล้นค่าพุทธมณฑล...", answer: "นครปฐม" },
+            { slogan: "ส้มโอหวาน ข้าวสารขาว ลูกสาวงาม ข้าวหลามหวานมัน สนามจันทร์งามล้น...", answer: "นครปฐม" }, // *Note: บางจังหวัดมีหลายเวอร์ชัน
+            { slogan: "เมืองร้อยเกาะ เงาะอร่อย หอยใหญ่ ไข่แดง แหล่งธรรมะ", answer: "สุราษฎร์ธานี" },
+            { slogan: "เมืองโอ่งมังกร แง่มงามหน้าผา ถ้ำงามราตรี", answer: "ราชบุรี" },
+            { slogan: "ถิ่นประสูติพระเจ้าเสือ แข่งเรือยาวประเพณี พระเครื่องตระการตา บึงบอระเพ็ดงามล้ำ...", answer: "พิจิตร" },
+            { slogan: "หมูย่างรสเลิศ ถิ่นกำเนิดยางพารา เด่นสง่าดอกศรีตรัง ปะการังใต้ทะเล...", answer: "ตรัง" },
+            { slogan: "เมืองผลไม้ดก ทางสะดวก มะพร้าวรสดี", answer: "สมุทรสงคราม" },
+            { slogan: "พระธาตุเชิงชุมคู่บ้าน พระตำหนักภูพานคู่เมือง งามลือเลื่องหนองหาร...", answer: "สกลนคร" },
+            { slogan: "พระมงคลมิ่งเมือง แหล่งรุ่งเรืองเจ็ดลุ่มน้ำ งามล้ำถ้ำศักดิ์สิทธิ์ เทพเนรมิตพระเหลา...", answer: "อำนาจเจริญ" },
+            { slogan: "เมืองทองเนื้อเก้า มะพร้าวสับปะรด สวยสด หาด เขา ถ้ำ งามล้ำน้ำใจ", answer: "ประจวบคีรีขันธ์" },
+            { slogan: "สะพานข้ามแม่น้ำแคว แหล่งพลอย กาญจนบุรี...", answer: "กาญจนบุรี" },
+            { slogan: "ใต้สุดสยาม เมืองงามชายแดน", answer: "ยะลา" },
+            { slogan: "น้ำตกลือเลื่อง เมืองผลไม้ พริกไทยพันธุ์ดี อัญมณีมากเหลือ เสื่อจันทบูร...", answer: "จันทบุรี" },
+            { slogan: "หลวงพ่อโสธรลือระบือนาม มะม่วงแปดริ้ว หวานฉ่ำ...", answer: "ฉะเชิงเทรา" }
+        ];
+
+        // เพิ่ม Alias สำหรับคำตอบที่คนมักตอบสั้นๆ
+        const answerAliases = {
+            "กรุงเทพ": "กรุงเทพมหานคร",
+            "กทม": "กรุงเทพมหานคร",
+            "อยุธยา": "พระนครศรีอยุธยา",
+            "โคราช": "นครราชสีมา"
+        };
+
+        let score = 0;
+        let time = 60;
+        let isPlaying = false;
+        let currentQuestion = {};
+        let timerInterval;
+        let playerName = "";
+
+        const startScreen = document.getElementById('start-screen');
+        const gameScreen = document.getElementById('game-screen');
+        const endScreen = document.getElementById('end-screen');
+        const nameInput = document.getElementById('player-name');
+        const timeDisplay = document.getElementById('time-left');
+        const scoreDisplay = document.getElementById('score');
+        const questionDisplay = document.getElementById('question');
+        const inputField = document.getElementById('answer-input');
+        const timerContainer = document.getElementById('timer-container');
+        const correctAnswerShow = document.getElementById('correct-answer-show');
+
+        // Check LocalStorage
+        if(localStorage.getItem('lastPlayerNameThai')) {
+            nameInput.value = localStorage.getItem('lastPlayerNameThai');
+        }
+
+        function goToGame() {
+            playerName = nameInput.value.trim();
+            if (!playerName) { alert("กรุณาลงชื่อก่อนนะจ๊ะ"); return; }
+            localStorage.setItem('lastPlayerNameThai', playerName);
+            
+            startScreen.classList.remove('active');
+            gameScreen.classList.add('active');
+            startGame();
+        }
+
+        function startGame() {
+            score = 0;
+            time = 60;
+            isPlaying = true;
+            scoreDisplay.innerText = score;
+            timeDisplay.innerText = time;
+            inputField.value = '';
+            inputField.focus();
+            generateQuestion();
+
+            timerInterval = setInterval(() => {
+                time--;
+                timeDisplay.innerText = time;
+                if (time <= 0) endGame('time');
+            }, 1000);
+        }
+
+        function generateQuestion() {
+            // สุ่มคำขวัญจาก Array
+            const randomIndex = Math.floor(Math.random() * provincesData.length);
+            currentQuestion = provincesData[randomIndex];
+            questionDisplay.innerText = `"${currentQuestion.slogan}"`;
+        }
+
+        function cleanAnswer(text) {
+            // ลบคำว่า จังหวัด, จ., และช่องว่าง
+            return text.replace(/จังหวัด/g, '').replace(/จ\./g, '').trim();
+        }
+
+        function checkAnswer() {
+            let userAnswer = cleanAnswer(inputField.value);
+            let correctAnswer = cleanAnswer(currentQuestion.answer);
+
+            // เช็ค Alias (เช่น พิมพ์ กรุงเทพ ก็ให้ถูก)
+            if (answerAliases[userAnswer]) userAnswer = answerAliases[userAnswer];
+            if (answerAliases[correctAnswer]) correctAnswer = answerAliases[correctAnswer];
+
+            if (userAnswer === correctAnswer) {
+                // ตอบถูก
+                score++;
+                time += 5; // ให้เวลาเยอะหน่อยเพราะพิมพ์ยาก
+                scoreDisplay.innerText = score;
+                timeDisplay.innerText = time;
+                
+                showFeedback();
+                showTimeBonus();
+                
+                inputField.value = '';
+                generateQuestion();
+            } else {
+                // ตอบผิด
+                endGame('wrong');
+            }
+        }
+
+        function endGame(reason) {
+            clearInterval(timerInterval);
+            isPlaying = false;
+            
+            gameScreen.classList.remove('active');
+            endScreen.classList.add('active');
+            
+            document.getElementById('final-score').innerText = score;
+            correctAnswerShow.innerText = currentQuestion.answer; // เฉลยข้อที่ผิด
+
+            const endTitle = document.getElementById('end-title');
+            if (reason === 'wrong') {
+                endTitle.innerHTML = "<span style='color:#e74c3c'>ตอบผิดจ้า! ❌</span>";
+            } else {
+                endTitle.innerHTML = "<span style='color:#f39c12'>หมดเวลาแล้ว! ⏰</span>";
+            }
+
+            saveScore(playerName, score);
+            showLeaderboard();
+        }
+
+        function restartGame() {
+            endScreen.classList.remove('active');
+            startScreen.classList.add('active');
+        }
+
+        // --- Visual Effects ---
+        function showFeedback() {
+            const msgs = ["แม่นมาก! 👍", "ใช่เลย! ✨", "สุดยอด! 🇹🇭", "เก่งจริง! 🔥"];
+            const el = document.createElement('div');
+            el.className = 'feedback-popup';
+            el.innerText = msgs[Math.floor(Math.random() * msgs.length)];
+            gameScreen.appendChild(el);
+            setTimeout(() => el.remove(), 800);
+        }
+
+        function showTimeBonus() {
+            const el = document.createElement('div');
+            el.className = 'time-bonus';
+            el.innerText = '+5s'; // เพิ่มเวลาโชว์ตรงนี้
+            timerContainer.appendChild(el);
+            setTimeout(() => el.remove(), 800);
+        }
+
+        // --- Leaderboard ---
+        function saveScore(name, score) {
+            let scores = JSON.parse(localStorage.getItem('thaiGameScores')) || [];
+            scores.push({ name: name, score: score });
+            scores.sort((a, b) => b.score - a.score);
+            scores = scores.slice(0, 5);
+            localStorage.setItem('thaiGameScores', JSON.stringify(scores));
+        }
+
+        function showLeaderboard() {
+            let scores = JSON.parse(localStorage.getItem('thaiGameScores')) || [];
+            const tbody = document.getElementById('leaderboard-body');
+            tbody.innerHTML = '';
+
+            scores.forEach((player, index) => {
+                const row = document.createElement('tr');
+                if(index === 0) row.classList.add('rank-1');
+                row.innerHTML = `<td>${index+1}</td><td>${player.name}</td><td>${player.score}</td>`;
+                tbody.appendChild(row);
+            });
+            
+            if(scores.length === 0) tbody.innerHTML = '<tr><td colspan="3">ยังไม่มีผู้เล่น</td></tr>';
+        }
+
+        // Input Listener
+        inputField.addEventListener('keyup', (e) => {
+            if (!isPlaying) return;
+            if (e.key === 'Enter') {
+                checkAnswer();
+            }
+        });
+    </script>
+</body>
+</html>
